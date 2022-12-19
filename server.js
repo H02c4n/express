@@ -3,6 +3,7 @@ const app = express();
 const path = require("path");
 const cors = require("cors");
 const { logger } = require("./middleware/logger");
+const errorHandler = require("./middleware/errorHandler");
 
 const PORT = process.env.PORT || 3500;
 
@@ -22,7 +23,8 @@ const whitelist = [
 ];
 const corsOptions = {
   origin: (origin, callback) => {
-    if (whitelist.indexOf(origin) !== -1) {
+    // when you upload on server remove after or option *--|| !origin---*
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -47,7 +49,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 //serve static files
-app.use(express.static(path.join(__dirname, "/public")));
+app.use("/", express.static(path.join(__dirname, "/public")));
+//app.use(express.static("public"));
+app.use("/subdir", express.static(path.join(__dirname, "/public")));
+
+app.use("/subdir", require("./routes/subdir"));
 
 // app.get("/", (req, res) => {
 //   res.send("Hello world");
@@ -96,8 +102,18 @@ const three = (req, res) => {
 
 app.get("/chain(.html)?", [one, two, three]);
 
-app.get("/*", (req, res) => {
+// app.get("/*", (req, res) => {
+//   res.status(404).sendFile(path.join(__dirname, "views", "404.html"));
+// });
+app.all("*", (req, res) => {
   res.status(404).sendFile(path.join(__dirname, "views", "404.html"));
 });
+
+// Error Handler middleware
+// app.use(function (err, req, res, next) {
+//   console.log(err.stack);
+//   res.status(500).send(err, message);
+// });
+app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`it's alive on port : ${PORT}`));
